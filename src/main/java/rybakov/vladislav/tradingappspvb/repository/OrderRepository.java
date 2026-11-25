@@ -22,7 +22,7 @@ public interface OrderRepository
     );
 
     List<Order>
-    findAllByInstrument_SeccodeAndSideAndStatusInAndPriceLessThanEqualOrderByPriceAscCreatedAtAscIdAsc(
+    findAllByInstrument_SeccodeAndSideAndStatusInAndPriceLessThanEqualOrderByPriceAscPriorityAtAscIdAsc(
             String seccode,
             OrderSide side,
             Collection<OrderStatus> statuses,
@@ -30,7 +30,7 @@ public interface OrderRepository
     );
 
     List<Order>
-    findAllByInstrument_SeccodeAndSideAndStatusInAndPriceGreaterThanEqualOrderByPriceDescCreatedAtAscIdAsc(
+    findAllByInstrument_SeccodeAndSideAndStatusInAndPriceGreaterThanEqualOrderByPriceDescPriorityAtAscIdAsc(
             String seccode,
             OrderSide side,
             Collection<OrderStatus> statuses,
