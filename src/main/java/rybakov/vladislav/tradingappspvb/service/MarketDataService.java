@@ -128,12 +128,15 @@ public class MarketDataService {
             long orderCount = 1L;
 
             if (currentLevel != null) {
-                quantity = Math.addExact(
+                quantity = MonetaryLimits.addQuantity(
                         quantity,
                         currentLevel.quantity()
                 );
 
-                orderCount = currentLevel.orderCount() + 1;
+                orderCount = MonetaryLimits.addQuantity(
+                        currentLevel.orderCount(),
+                        1L
+                );
             }
 
             levels.put(

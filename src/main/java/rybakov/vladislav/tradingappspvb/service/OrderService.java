@@ -16,6 +16,7 @@ import rybakov.vladislav.tradingappspvb.exception.ResourceNotFoundException;
 import rybakov.vladislav.tradingappspvb.repository.AccountRepository;
 import rybakov.vladislav.tradingappspvb.repository.InstrumentRepository;
 import rybakov.vladislav.tradingappspvb.repository.OrderRepository;
+import rybakov.vladislav.tradingappspvb.time.TimePoints;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -42,6 +43,8 @@ public class OrderService {
     private final AccountRepository accountRepository;
     private final InstrumentRepository instrumentRepository;
 
+    private final AccountService accountService;
+    private final InstrumentService instrumentService;
     private final ReservationService reservationService;
     private final MatchingService matchingService;
 
@@ -80,7 +83,7 @@ public class OrderService {
         order.setFilledQuantity(0L);
         order.setStatus(OrderStatus.NEW);
 
-        Instant now = Instant.now();
+        Instant now = TimePoints.now();
 
         order.setCreatedAt(now);
         order.setUpdatedAt(now);
@@ -158,11 +161,13 @@ public class OrderService {
         order.setPrice(newPrice);
         order.setQuantity(newQuantity);
 
+        Instant now = TimePoints.now();
+
         if (priorityLost) {
-            order.setPriorityAt(Instant.now());
+            order.setPriorityAt(now);
         }
 
-        order.setUpdatedAt(Instant.now());
+        order.setUpdatedAt(now);
 
         reservationService.reserve(order);
 
@@ -189,7 +194,7 @@ public class OrderService {
         reservationService.release(order);
 
         order.setStatus(OrderStatus.CANCELLED);
-        order.setUpdatedAt(Instant.now());
+        order.setUpdatedAt(TimePoints.now());
 
         return toResponse(order);
     }
@@ -208,6 +213,8 @@ public class OrderService {
     public List<OrderResponse> getByAccountId(
             Long accountId
     ) {
+        accountService.findAccount(accountId);
+
         return orderRepository.findAllByAccount_Id(accountId)
                 .stream()
                 .map(this::toResponse)
@@ -217,9 +224,12 @@ public class OrderService {
     public List<OrderResponse> getBySeccode(
             String seccode
     ) {
+        Instrument instrument =
+                instrumentService.findInstrument(seccode);
+
         return orderRepository
                 .findAllByInstrument_Seccode(
-                        normalizeSeccode(seccode)
+                        instrument.getSeccode()
                 )
                 .stream()
                 .map(this::toResponse)

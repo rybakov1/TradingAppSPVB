@@ -6,6 +6,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import rybakov.vladislav.tradingappspvb.enums.OrderSide;
 import rybakov.vladislav.tradingappspvb.enums.OrderStatus;
+import rybakov.vladislav.tradingappspvb.time.TimePoints;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -52,9 +53,18 @@ public class Order {
     @Column(nullable = false)
     private Instant updatedAt = Instant.now();
 
+    @PrePersist
+    private void normalizeTimestampsOnCreate() {
+        createdAt = TimePoints.micros(createdAt);
+        updatedAt = TimePoints.micros(updatedAt);
+        priorityAt = TimePoints.micros(priorityAt);
+    }
+
     @PreUpdate
-    private void preUpdate() {
-        updatedAt = Instant.now();
+    private void normalizeUpdatedAt() {
+        // Truncate only. Assigning Instant.now() here would run at flush,
+        // after the response DTO has already been built.
+        updatedAt = TimePoints.micros(updatedAt);
     }
 
     public Long getRemainingQuantity() {

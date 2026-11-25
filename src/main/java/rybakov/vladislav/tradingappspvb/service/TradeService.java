@@ -44,7 +44,7 @@ public class TradeService {
                 instrumentService.findInstrument(seccode);
 
         return tradeRepository
-                .findAllByInstrument_SeccodeOrderByExecutedAtDesc(
+                .findAllByInstrument_SeccodeOrderByExecutedAtDescIdDesc(
                         instrument.getSeccode()
                 )
                 .stream()

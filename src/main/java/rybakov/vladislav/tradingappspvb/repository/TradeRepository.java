@@ -9,7 +9,7 @@ import java.util.Optional;
 public interface TradeRepository
         extends JpaRepository<Trade, Long> {
 
-    List<Trade> findAllByInstrument_SeccodeOrderByExecutedAtDesc(
+    List<Trade> findAllByInstrument_SeccodeOrderByExecutedAtDescIdDesc(
             String seccode
     );
 

@@ -78,7 +78,7 @@ public class ReservationService {
         }
 
         position.setReservedQuantity(
-                Math.addExact(
+                MonetaryLimits.addQuantity(
                         position.getReservedQuantity(),
                         required
                 )
@@ -146,10 +146,12 @@ public class ReservationService {
             long quantity,
             Instrument instrument
     ) {
-        return price.multiply(
+        BigDecimal amount = price.multiply(
                 BigDecimal.valueOf(
                         calculateUnits(quantity, instrument)
                 )
         );
+        MonetaryLimits.requireAmount(amount);
+        return amount;
     }
 }

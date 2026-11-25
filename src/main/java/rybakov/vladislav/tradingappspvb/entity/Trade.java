@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import rybakov.vladislav.tradingappspvb.time.TimePoints;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -39,4 +40,9 @@ public class Trade {
 
     @Column(nullable = false, updatable = false)
     private Instant executedAt = Instant.now();
+
+    @PrePersist
+    private void normalizeExecutedAt() {
+        executedAt = TimePoints.micros(executedAt);
+    }
 }

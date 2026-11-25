@@ -33,3 +33,9 @@ build/
 ### VS Code ###
 .vscode/
 
+# Local QA artifacts
+/qa/
+
+# Python cache
+__pycache__/
+*.pyc

@@ -14,6 +14,7 @@ import rybakov.vladislav.tradingappspvb.enums.OrderStatus;
 import rybakov.vladislav.tradingappspvb.repository.OrderRepository;
 import rybakov.vladislav.tradingappspvb.repository.PositionRepository;
 import rybakov.vladislav.tradingappspvb.repository.TradeRepository;
+import rybakov.vladislav.tradingappspvb.time.TimePoints;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -34,6 +35,16 @@ public class MatchingService {
     private final PositionRepository positionRepository;
     private final ReservationService reservationService;
 
+    /**
+     * Matches the incoming order by price-time priority.
+     *
+     * <p>Self-trade prevention is Cancel Aggressor. A price-compatible
+     * resting order of the same user is not traded and is not skipped in
+     * favour of a worse opposite order. The unfilled remainder of the
+     * incoming order is cancelled, its reservation is released, and matching
+     * stops. Fills already made in this call are kept. The resting order
+     * stays as it was.
+     */
     public void match(Order incomingOrder) {
 
         List<Order> oppositeOrders =
@@ -51,11 +62,22 @@ public class MatchingService {
 
             if (incomingOrder.getAccount().getUserId()
                     .equals(oppositeOrder.getAccount().getUserId())) {
-                continue;
+                cancelAggressor(incomingOrder);
+                return;
             }
 
             executeTrade(incomingOrder, oppositeOrder);
         }
+    }
+
+    private void cancelAggressor(Order incomingOrder) {
+        if (incomingOrder.getRemainingQuantity() == 0) {
+            return;
+        }
+
+        reservationService.release(incomingOrder);
+        incomingOrder.setStatus(OrderStatus.CANCELLED);
+        incomingOrder.setUpdatedAt(TimePoints.now());
     }
 
     private List<Order> findOppositeOrders(Order order) {
@@ -154,17 +176,20 @@ public class MatchingService {
             BigDecimal tradeAmount,
             BigDecimal reservedAmount
     ) {
-        buyer.setBalance(
-                buyer.getBalance().subtract(tradeAmount)
-        );
+        BigDecimal buyerBalance =
+                buyer.getBalance().subtract(tradeAmount);
 
-        buyer.setReservedBalance(
-                buyer.getReservedBalance().subtract(reservedAmount)
-        );
+        BigDecimal buyerReserved =
+                buyer.getReservedBalance().subtract(reservedAmount);
 
-        seller.setBalance(
-                seller.getBalance().add(tradeAmount)
-        );
+        BigDecimal sellerBalance =
+                seller.getBalance().add(tradeAmount);
+
+        MonetaryLimits.requireAmount(sellerBalance);
+
+        buyer.setBalance(buyerBalance);
+        buyer.setReservedBalance(buyerReserved);
+        seller.setBalance(sellerBalance);
     }
 
     private void transferSecurities(
@@ -200,7 +225,7 @@ public class MatchingService {
         );
 
         buyerPosition.setQuantity(
-                Math.addExact(
+                MonetaryLimits.addQuantity(
                         buyerPosition.getQuantity(),
                         quantity
                 )
@@ -224,7 +249,10 @@ public class MatchingService {
             long executedQuantity
     ) {
         order.setFilledQuantity(
-                order.getFilledQuantity() + executedQuantity
+                MonetaryLimits.addQuantity(
+                        order.getFilledQuantity(),
+                        executedQuantity
+                )
         );
 
         if (order.getRemainingQuantity() == 0) {
@@ -232,6 +260,8 @@ public class MatchingService {
         } else {
             order.setStatus(OrderStatus.PARTIALLY_FILLED);
         }
+
+        order.setUpdatedAt(TimePoints.now());
     }
 
     private void createTrade(
@@ -248,6 +278,7 @@ public class MatchingService {
         trade.setInstrument(instrument);
         trade.setPrice(price);
         trade.setQuantity(quantity);
+        trade.setExecutedAt(TimePoints.now());
 
         tradeRepository.save(trade);
     }
