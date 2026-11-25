@@ -9,6 +9,7 @@ import rybakov.vladislav.tradingappspvb.entity.Account;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 public interface AccountRepository
         extends JpaRepository<Account, Long> {
@@ -22,5 +23,15 @@ public interface AccountRepository
             """)
     Optional<Account> findByIdForUpdate(
             @Param("id") Long id
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        SELECT a FROM Account a
+        WHERE a.id IN :ids
+        ORDER BY a.id ASC
+        """)
+    List<Account> findAllByIdsForUpdate(
+            @Param("ids") Collection<Long> ids
     );
 }

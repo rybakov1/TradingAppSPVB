@@ -11,9 +11,12 @@ import rybakov.vladislav.tradingappspvb.entity.Position;
 import rybakov.vladislav.tradingappspvb.exception.BusinessException;
 import rybakov.vladislav.tradingappspvb.exception.ConflictException;
 import rybakov.vladislav.tradingappspvb.exception.ResourceNotFoundException;
+import rybakov.vladislav.tradingappspvb.repository.AccountRepository;
+import rybakov.vladislav.tradingappspvb.repository.InstrumentRepository;
 import rybakov.vladislav.tradingappspvb.repository.PositionRepository;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -23,17 +26,29 @@ public class PositionService {
     private final PositionRepository positionRepository;
     private final AccountService accountService;
     private final InstrumentService instrumentService;
+    private final InstrumentRepository instrumentRepository;
+    private final AccountRepository accountRepository;
 
     @Transactional
     public PositionResponse create(
             Long accountId,
             CreatePositionRequest request
     ) {
-        Account account = accountService.findAccount(accountId);
+        String seccode = request.seccode()
+                .trim()
+                .toUpperCase(Locale.ROOT);
 
-        Instrument instrument = instrumentService.findInstrument(
-                request.seccode()
-        );
+        Instrument instrument = instrumentRepository
+                .findBySeccodeForUpdate(seccode)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Instrument not found: " + seccode
+                ));
+
+        Account account = accountRepository
+                .findByIdForUpdate(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Account not found: " + accountId
+                ));
 
         if (account.getCurrency() != instrument.getCurrency()) {
             throw new BusinessException(

@@ -60,4 +60,7 @@ public class Order {
     public Long getRemainingQuantity() {
         return quantity - filledQuantity;
     }
+
+    @Column(nullable = false)
+    private Instant priorityAt = Instant.now();
 }
